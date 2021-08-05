@@ -1,0 +1,62 @@
+from vpython import *
+
+G = 6.67e-11
+
+m1 = float(input("Podaj masę pierwszego ciała (np. 1e30): "))
+m2 = float(input("Podaj masę drugiego ciała (np. 2e30): "))
+rpocz = float(input("Podaj początkową odległość między ciałami (np. 3e10): "))
+# rpocz = 3e10     # poczatkowa odleglosc pomiedzy ciałami
+
+M = m1 + m2
+x1 = -(m2 / M) * rpocz
+x2 = (m1 / M) * rpocz
+
+if m1 < m2:
+    rad1 = 1e9
+    rad2 = 4e9
+else:
+    rad1 = 4e9
+    rad2 = 1e9
+
+body1 = sphere(pos=vector(x1, 0, 0), radius=rad1, color=color.blue, make_trail=True)
+body2 = sphere(pos=vector(x2, 0, 0), radius=rad2, color=color.yellow, make_trail=True)
+
+R = (body1.pos * m1 + body2.pos * m2) / M  # środek masy
+r = body2.pos - body1.pos  # odleglosc pomiedzy cialami w danym momencie
+v1circle = sqrt(G * m2 * mag(body1.pos) / mag(r) ** 2)  # prędkość ciała
+
+rodzaj = input("Podaj rodzaj orbity (eliptyczna czy kołowa): ")
+
+if rodzaj == "eliptyczna":
+    mnoznik = 0.7
+else:
+    if rodzaj == "kołowa":
+        mnoznik = 1
+    else:
+        print("Podano zły rodzaj orbity. Otbita została automatycznie ustawiona na eliptyczną!")
+        mnoznik = 0.7
+
+body1.v = vector(0, mnoznik * v1circle, 0)
+body1.p = m1 * body1.v
+body2.p = -body1.p
+
+tgraph = graph(xtitle="r [m]", ytitle="Ep [J]")  # wykres energii potencjalnej układu
+fU = gcurve(color=color.red, dot=True)
+mu = m1 * m2 / M      #masa zredukowana
+l = mag(cross(body1.pos, body1.p) + cross(body2.pos, body2.p))  #moment pędu
+
+t = 0
+dt = 1000
+while t < 20e6:
+    rate(1000)
+    r = body2.pos - body1.pos
+    F2 = -G * m1 * m2 * norm(r) / mag(r) ** 2
+    body2.p = body2.p + F2 * dt
+    body1.p = body1.p - F2 * dt
+    body1.pos = body1.pos + body1.p * dt / m1
+    body2.pos = body2.pos + body2.p * dt / m2
+    Ug = -G * m1 * m2 / mag(r)      #energia potencjalna
+    #Uc = l ** 2 / (2 * mu * mag(r) ** 2)      #energia potencjalna odśrodkowa
+    Uef = Ug
+    fU.plot(mag(r), Uef)
+    t = t + dt
